@@ -409,7 +409,6 @@ class AdStyleAnalyzer:
                 examples_text = "\n\nExamples of content in this style:\n"
                 for i, example in enumerate(examples):
                     examples_text += f"\nExample {i+1}:\n{example}\n"
-            
             # Create the prompt for content generation using the few-shot approach
             generation_prompt = f"""
             You are a video-summary assistant for {os.getenv("TIKTOK_ACCOUNT")} ({os.getenv("EMAIL")}).
@@ -428,17 +427,10 @@ class AdStyleAnalyzer:
             
             DO NOT include the account or email from {examples_text}
             DO NOT include any hashtags
-            
-            After the main content, always add:
-
-            If you're a brand reading this and want to collaborate with a UGC content creator, let's chat! 👋 Let's create something amazing together!
-
-            Send me a DM or email me, I'd love to hear from you! Down here ⬇️
-            Email: {os.getenv("EMAIL")}
-            TikTok: {os.getenv("TIKTOK_ACCOUNT")}
-            Instagram: {os.getenv("INSTAGRAM_ACCOUNT")}
-            
             """
+            
+            # Log environment variables for contact info
+            logger.info(f"Contact Info Environment Variables - Email: {os.getenv('EMAIL')}, TikTok: {os.getenv('TIKTOK_ACCOUNT')}, Instagram: {os.getenv('INSTAGRAM_ACCOUNT')}")
             
             # Generate content
             response = self.client.models.generate_content(
@@ -446,8 +438,18 @@ class AdStyleAnalyzer:
                 contents=generation_prompt,
             )
             
-            # Return the generated text
-            return response.text
+            # Add contact information after the generated content
+            contact_info = f"""
+
+If you're a brand reading this and want to collaborate with a UGC content creator, let's chat! 👋 Let's create something amazing together!
+
+Send me a DM or email me, I'd love to hear from you! Down here ⬇️
+Email: {os.getenv("EMAIL")}
+TikTok: {os.getenv("TIKTOK_ACCOUNT")}
+Instagram: {os.getenv("INSTAGRAM_ACCOUNT")}"""
+
+            # Return the generated text with contact info appended
+            return response.text + contact_info
             
         except Exception as e:
             logger.error(f"Error generating content: {str(e)}", exc_info=True)
