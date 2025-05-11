@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  tiktok-ads-bot:
+    image: python:3.10-slim
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY}
+      #- GITHUB_USERNAME=${GITHUB_USERNAME}
+      #- GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - UPLOAD_POST_API_KEY=${UPLOAD_POST_API_KEY}
+      - UPLOAD_POST_USER=${UPLOAD_POST_USER}
+      - TIKTOK_ACCOUNT=${TIKTOK_ACCOUNT}
+      - EMAIL=${EMAIL}
+      - INSTAGRAM_ACCOUNT=${INSTAGRAM_ACCOUNT}
+    volumes:
+      - /DockerConfig/tiktokTelegram/data:/app/data
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        apt-get update && \
+        apt-get install -y git ffmpeg
+        rm -rf /tmp/app
+        mkdir -p /tmp/app
+        #git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/zongjieshen/tiktok-telegram-bot.git /tmp/app
+        git clone https://github.com/zongjieshen/tiktok-telegram-bot.git /tmp/app
+        # remove everything except the data directory
+        find /app -mindepth 1 -maxdepth 1 ! -name 'data' -exec rm -rf {} \;
+        cp -r /tmp/app/* /app/
+        pip install -r /app/requirements.txt
+        python /app/telegram_bot.py
+
+  plik:
+    image: rootgg/plik:latest
+    container_name: plik
+    ports:
+      - "8080:8080"
+    # ephemeral storage: store uploads in a tmpfs (memory-backed) folder
+    tmpfs:
+      - /data
+    environment:
+      # Default storage path inside container
+      - PLIK_FS_DATA_PATH=/data
+      # Optional: file expiration in seconds (e.g., 86400 = 24h)
+      - PLIK_MAX_FILE_LIFETIME=86400
+    restart: unless-stopped

@@ -1,0 +1,11 @@
+python-telegram-bot>=20.0
+python-dotenv
+pandas
+requests
+openai
+ffmpeg-python
+google-genai
+aiohttp
+faiss-cpu
+numpy
+telegramify-markdown
