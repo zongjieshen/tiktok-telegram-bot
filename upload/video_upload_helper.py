@@ -251,13 +251,17 @@ async def handle_hashtag_callback(update: Update, context: ContextTypes.DEFAULT_
         # Create confirmation message
         message = (
             f"🚀 Ready to upload your video!\n\n"
-            f"📝 *Title:* {upload_data['title']}\n\n"
-            f"🏷️ *Hashtags:* "
+            f"📝 <b>Title:</b> {upload_data['title']}\n\n"
+            f"🏷️ <b>Hashtags:</b> "
         )
         
         # Add hashtags
         hashtags_text = " ".join([f"{h.tag}" for h in upload_data['hashtags']])
         message += hashtags_text + "\n\n"
+        
+        # Create copyable text block with title and hashtags
+        copyable_text = f"{upload_data['title']}\n\n{hashtags_text}"
+        message += f"📋 <b>Copy-paste block:</b>\n<pre>{copyable_text}</pre>\n\n"
         
         # Add platform info
         platforms_text = ", ".join(upload_data['platforms'])
@@ -358,18 +362,47 @@ async def handle_upload_callback(update: Update, context: ContextTypes.DEFAULT_T
             # Initialize the upload client
             client = UploadPostClient()
             
-            # Upload the video
+            # Upload the video with combined title and hashtags
+            combined_title = f"{upload_data['title']}\n\n{' '.join([h.tag for h in upload_data['hashtags']])}"
             result = await asyncio.to_thread(
                 client.upload_video,
                 video_path=upload_data['video_path'],
-                title=upload_data['title'],
+                title=combined_title,
                 description=description,
                 platforms=upload_data['platforms'],
                 tags=hashtags
             )
             
+            # Check if the API call was successful and if all platform uploads succeeded
+            upload_success = False
+            if result and isinstance(result, dict):
+                # Check if the API call was successful
+                if result.get('success', False):
+                    # Check if all platform uploads were successful
+                    platform_results = result.get('results', {})
+                    all_platforms_success = True
+                    platform_errors = {}
+                    
+                    # Check each platform result
+                    for platform, platform_result in platform_results.items():
+                        if not platform_result.get('success', False):
+                            all_platforms_success = False
+                            platform_errors[platform] = platform_result.get('error', 'Unknown error')
+                    
+                    if all_platforms_success:
+                        # All platforms succeeded
+                        upload_success = True
+                    else:
+                        # Some platforms failed
+                        upload_data["status"] = "partial_success"
+                        upload_data["platform_errors"] = platform_errors
+                else:
+                    # API call failed
+                    upload_data["status"] = "failed"
+                    upload_data["error"] = result.get('error', 'API call failed')
+            
             # Update status based on result
-            if result and isinstance(result, dict) and result.get('success', False):
+            if upload_success:
                 # Upload was successful
                 upload_data["status"] = "completed"
                 upload_data["result"] = result
@@ -396,14 +429,21 @@ async def handle_upload_callback(update: Update, context: ContextTypes.DEFAULT_T
             else:
                 # Upload failed or returned unexpected result
                 upload_data["status"] = "failed"
-                upload_data["error"] = result.get('error', 'Unknown error occurred') if isinstance(result, dict) else 'Invalid response from upload service'
                 
-                # Send failure message
-                error_message = (
-                    f"❌ Video upload failed!\n\n"
-                    f"<b>Error:</b> {upload_data['error']}\n\n"
-                    f"Please try again later or contact support if the issue persists."
-                )
+                # Create error message
+                error_message = "❌ Video upload failed!\n\n"
+                
+                if upload_data.get("platform_errors"):
+                    # Show platform-specific errors
+                    error_message += "<b>Platform Errors:</b>\n"
+                    for platform, error in upload_data["platform_errors"].items():
+                        error_message += f"- {platform}: {error}\n\n"
+                else:
+                    # Show general error
+                    general_error = upload_data.get("error", "Unknown error occurred")
+                    error_message += f"<b>Error:</b> {general_error}\n\n"
+                
+                error_message += "Please try again later or contact support if the issue persists."
                 
                 await context.bot.send_message(
                     chat_id=chat_id,

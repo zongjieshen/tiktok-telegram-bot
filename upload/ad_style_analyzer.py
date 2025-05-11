@@ -427,6 +427,7 @@ class AdStyleAnalyzer:
             
             DO NOT include the account or email from {examples_text}
             DO NOT include any hashtags
+            DO NOT include If you are a brand reading this...
             """
             
             # Log environment variables for contact info
