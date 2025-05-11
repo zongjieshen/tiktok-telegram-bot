@@ -7,8 +7,6 @@ services:
     environment:
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - RAPIDAPI_KEY=${RAPIDAPI_KEY}
-      #- GITHUB_USERNAME=${GITHUB_USERNAME}
-      #- GITHUB_TOKEN=${GITHUB_TOKEN}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - UPLOAD_POST_API_KEY=${UPLOAD_POST_API_KEY}
       - UPLOAD_POST_USER=${UPLOAD_POST_USER}
@@ -26,7 +24,6 @@ services:
         apt-get install -y git ffmpeg
         rm -rf /tmp/app
         mkdir -p /tmp/app
-        #git clone https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/zongjieshen/tiktok-telegram-bot.git /tmp/app
         git clone https://github.com/zongjieshen/tiktok-telegram-bot.git /tmp/app
         # remove everything except the data directory
         find /app -mindepth 1 -maxdepth 1 ! -name 'data' -exec rm -rf {} \;
