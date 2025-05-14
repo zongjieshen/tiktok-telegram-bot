@@ -443,13 +443,28 @@ async def handle_upload_callback(update: Update, context: ContextTypes.DEFAULT_T
                     general_error = upload_data.get("error", "Unknown error occurred")
                     error_message += f"<b>Error:</b> {general_error}\n\n"
                 
-                error_message += "Please try again later or contact support if the issue persists."
+                error_message += "Would you like to try again or cancel the upload?"
+                
+                # Create retry keyboard
+                keyboard = [
+                    [
+                        InlineKeyboardButton("🔄 Try Again", callback_data=UPLOAD_VIDEO),
+                        InlineKeyboardButton("⬅️ Back to Review", callback_data=BACK_TO_REVIEW),
+                        InlineKeyboardButton("❌ Cancel", callback_data=CANCEL)
+                    ]
+                ]
+                
+                reply_markup = InlineKeyboardMarkup(keyboard)
                 
                 await context.bot.send_message(
                     chat_id=chat_id,
                     text=error_message,
+                    reply_markup=reply_markup,
                     parse_mode='HTML'
                 )
+                
+                # Return to UPLOADING state to allow retry
+                return UPLOADING
             
             # Clean up
             try:
@@ -460,16 +475,35 @@ async def handle_upload_callback(update: Update, context: ContextTypes.DEFAULT_T
         except Exception as e:
             logger.error(f"Error uploading video: {str(e)}", exc_info=True)
             
-            # Send error message
+            # Send error message with retry option
+            error_message = f"❌ Error uploading video: {str(e)}\n\nWould you like to try again or cancel the upload?"
+            
+            # Create retry keyboard
+            keyboard = [
+                [
+                    InlineKeyboardButton("🔄 Try Again", callback_data=UPLOAD_VIDEO),
+                    InlineKeyboardButton("⬅️ Back to Review", callback_data=BACK_TO_REVIEW),
+                    InlineKeyboardButton("❌ Cancel", callback_data=CANCEL)
+                ]
+            ]
+            
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"❌ Error uploading video: {str(e)}"
+                text=error_message,
+                reply_markup=reply_markup,
+                parse_mode='HTML'
             )
             
             # Update status
             upload_data["status"] = "failed"
             upload_data["error"] = str(e)
+            
+            # Return to UPLOADING state to allow retry
+            return UPLOADING
         
+        # Only reach here if upload was successful
         return ConversationHandler.END
 
 async def handle_title_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
